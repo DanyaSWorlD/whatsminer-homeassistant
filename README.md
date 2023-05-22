@@ -8,5 +8,5 @@ Currently supported versions:
 
 Tested on:
   - M20S (1.4.0)
-  - M31S (2.0.3)
+  - M31S (2.0.5)
 
