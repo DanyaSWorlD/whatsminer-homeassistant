@@ -16,7 +16,7 @@ from .api import (
     DecodeError,
     MinerOffline,
     WhatsminerApi,
-    WhatsMinerAPI20
+    WhatsMinerApi20, UnsupportedVersion
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -53,6 +53,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "token_exceeded"
             except MinerOffline:
                 errors["base"] = "miner_offline"
+            except UnsupportedVersion:
+                errors["base"] = "unsupported_version"
             except WhatsminerException as e:
                 _LOGGER.info("Unexpected miner exception", exc_info=e)
                 errors["base"] = "unknown"
@@ -81,9 +83,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_detect_api(self, machine: WhatsminerMachine) -> WhatsminerApi:
-        api = WhatsminerApi(machine)
-        version = await api.get_version()
-        if version.api_version[:-1] != "2.0.":
-            return api
-        else:
-            return WhatsMinerAPI20(machine)
+        try:
+            api = WhatsminerApi(machine)
+            version = await api.get_version()
+            if version.api_version != "whatsminer v1.4.0":
+                raise UnsupportedVersion(version.api_version)
+        except KeyError:
+            try:
+                api = WhatsMinerApi20(machine)
+                version = await api.get_version()
+                if version.api_version[:-1] != "2.0.":
+                    raise UnsupportedVersion(version.api_version)
+            except KeyError:
+                raise UnsupportedVersion("Key error while obtaining version")
+
+        return api

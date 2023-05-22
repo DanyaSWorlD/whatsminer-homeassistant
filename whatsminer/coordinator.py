@@ -21,7 +21,8 @@ from .api import (
     WhatsminerException,
     TokenError,
     DecodeError,
-    MinerOffline, WhatsMinerAPI20,
+    MinerOffline,
+    WhatsMinerApi20,
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -92,11 +93,11 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
             raise UpdateFailed from error
 
     async def detect_api(self):
-        api = WhatsminerApi(self.machine)
+        try:
+            api = WhatsminerApi(self.machine)
+            self.version = await api.get_version()
+        except KeyError:
+            api = WhatsMinerApi20(self.machine)
+            self.version = await api.get_version()
 
-        self.version = await api.get_version()
-
-        if self.version.api_version[:-1] != "2.0.":
-            return api
-        else:
-            return WhatsMinerAPI20(self.machine)
+        return api

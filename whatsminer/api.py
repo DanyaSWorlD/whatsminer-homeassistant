@@ -40,6 +40,10 @@ class InvalidMessage(WhatsminerException):
     pass
 
 
+class UnsupportedVersion(WhatsminerException):
+    pass
+
+
 class ApiPermissionDenied(WhatsminerException):
     pass
 
@@ -404,7 +408,7 @@ class WhatsminerApi(object):
             data = response["Msg"]
             return MinerStatus(
                 miner_online=data["btmineroff"] == "false",
-                firmware_version=cast(str, data["FirmwareVersion"]).strip("'"),
+                firmware_version=cast(str, data["Firmware Version"]).strip("'"),
             )
         except KeyError as error:
             raise InvalidResponse() from error
@@ -461,7 +465,7 @@ class WhatsminerApi(object):
         )
 
 
-class WhatsMinerAPI20(WhatsminerApi):
+class WhatsMinerApi20(WhatsminerApi):
     def __init__(self, machine: WhatsminerMachine):
         super().__init__(machine)
 
@@ -498,6 +502,19 @@ class WhatsMinerAPI20(WhatsminerApi):
                 chip_temperature_maximum=data["Chip Temp Max"],
                 chip_temperature_average=data["Chip Temp Avg"],
                 mac=data_info["mac"],
+            )
+        except KeyError as error:
+            raise InvalidResponse() from error
+
+    async def get_status(self) -> MinerStatus:
+        response = await self.machine.communicate(
+            "status", encrypted=False, expect_response=True
+        )
+        try:
+            data = response["Msg"]
+            return MinerStatus(
+                miner_online=data["btmineroff"] == "false",
+                firmware_version=cast(str, data["FirmwareVersion"]).strip("'"),
             )
         except KeyError as error:
             raise InvalidResponse() from error
