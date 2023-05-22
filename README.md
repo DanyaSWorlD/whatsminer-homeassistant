@@ -1,5 +1,14 @@
 # Whatsminer API
 
-Trying to bring the Whatsminer API to homeassistant to control my M20S.
-Not yet fully working and targeted towards a specific API version.
+Home assistant integration with Whatsminer API
+
+## About
+
+Currently supported versions:
+  - 1.4.0
+  - 2.0.*
+
+Tested on:
+  - M20S (1.4.0)
+  - M31S (2.0.5)
 
