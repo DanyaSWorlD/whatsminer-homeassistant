@@ -16,7 +16,7 @@ from .api import (
     DecodeError,
     MinerOffline,
     WhatsminerApi,
-    WhatsMinerApi20, UnsupportedVersion
+    WhatsminerApi20, UnsupportedVersion
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -90,7 +90,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 raise UnsupportedVersion(version.api_version)
         except KeyError:
             try:
-                api = WhatsMinerApi20(machine)
+                api = WhatsminerApi20(machine)
                 version = await api.get_version()
                 if version.api_version[:-1] != "2.0.":
                     raise UnsupportedVersion(version.api_version)

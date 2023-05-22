@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
@@ -15,14 +16,14 @@ from homeassistant.helpers.update_coordinator import (
 from .api import (
     WhatsminerMachine,
     WhatsminerApi,
+    WhatsminerApi20,
     Summary,
     PowerUnitDetails,
     Version,
     WhatsminerException,
     TokenError,
     DecodeError,
-    MinerOffline,
-    WhatsMinerApi20,
+    MinerOffline
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -56,13 +57,17 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         password = entry.data[CONF_PASSWORD]
         self.version = Version("empty", "empty")
         self.machine = WhatsminerMachine(host, port, password)
-        self.api: WhatsminerApi = await self.detect_api()
+        self.api: WhatsminerApi = WhatsminerApi(self.machine)
+        self.version: Optional[Version] = None
         self.device_host: str = host
         self.device_model: Optional[str] = None
         self.device_mac: str = entry.data[CONF_MAC]
 
     async def async_fetch(self) -> MinerData:
         try:
+            if self.version is None:
+                self.api = await self.detect_api()
+
             status = await self.api.get_status()
 
             if self.device_model is None:
@@ -97,7 +102,7 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
             api = WhatsminerApi(self.machine)
             self.version = await api.get_version()
         except KeyError:
-            api = WhatsMinerApi20(self.machine)
+            api = WhatsminerApi20(self.machine)
             self.version = await api.get_version()
 
         return api

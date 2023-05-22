@@ -465,7 +465,7 @@ class WhatsminerApi(object):
         )
 
 
-class WhatsMinerApi20(WhatsminerApi):
+class WhatsminerApi20(WhatsminerApi):
     def __init__(self, machine: WhatsminerMachine):
         super().__init__(machine)
 
