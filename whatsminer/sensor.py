@@ -192,7 +192,6 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="power_mode",
         name="Power Mode",
-        state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.CONFIG,
         value=lambda x: x.summary.power_mode,
     ),
