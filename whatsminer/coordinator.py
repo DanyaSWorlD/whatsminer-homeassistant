@@ -21,7 +21,7 @@ from .api import (
     WhatsminerException,
     TokenError,
     DecodeError,
-    MinerOffline,
+    MinerOffline, WhatsMinerAPI20,
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -53,29 +53,33 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         host = entry.data[CONF_HOST]
         port = entry.data[CONF_PORT]
         password = entry.data[CONF_PASSWORD]
+        self.version = Version("empty", "empty")
         self.machine = WhatsminerMachine(host, port, password)
-        self.api: WhatsminerApi = WhatsminerApi(self.machine)
+        self.api: WhatsminerApi = await self.detect_api()
         self.device_host: str = host
         self.device_model: Optional[str] = None
         self.device_mac: str = entry.data[CONF_MAC]
 
     async def async_fetch(self) -> MinerData:
         try:
-            await self.api.get_status()
+            status = await self.api.get_status()
 
             if self.device_model is None:
                 async with async_timeout.timeout(10):
                     details = await self.api.get_device_details()
                     self.device_model = details[0].model
+
+            if not status.miner_online:
+                raise MinerOffline()
+
             async with async_timeout.timeout(10):
                 summary = await self.api.get_summary()
+
             async with async_timeout.timeout(10):
                 psu = await self.api.get_psu()
-            async with async_timeout.timeout(10):
-                version = await self.api.get_version()
 
             return OnlineMinerData(
-                self.device_model, summary=summary, power_unit=psu, version=version
+                self.device_model, summary=summary, power_unit=psu, version=self.version
             )
         except (TokenError, DecodeError) as error:
             raise ConfigEntryAuthFailed from error
@@ -86,3 +90,13 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         except Exception as error:
             _LOGGER.warning("Unexpected error: %s", error)
             raise UpdateFailed from error
+
+    async def detect_api(self):
+        api = WhatsminerApi(self.machine)
+
+        self.version = await api.get_version()
+
+        if self.version.api_version[:-1] != "2.0.":
+            return api
+        else:
+            return WhatsMinerAPI20(self.machine)
