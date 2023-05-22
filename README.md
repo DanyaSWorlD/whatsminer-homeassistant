@@ -2,6 +2,8 @@
 
 Home assistant integration with Whatsminer API
 
+## About
+
 Currently supported versions:
   - 1.4.0
   - 2.0.*
