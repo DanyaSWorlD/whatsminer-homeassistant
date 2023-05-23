@@ -83,18 +83,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_detect_api(self, machine: WhatsminerMachine) -> WhatsminerApi:
-        try:
-            api = WhatsminerApi(machine)
-            version = await api.get_version()
-            if version.api_version != "whatsminer v1.4.0":
-                raise UnsupportedVersion(version.api_version)
-        except KeyError:
-            try:
-                api = WhatsminerApi20(machine)
-                version = await api.get_version()
-                if version.api_version[:-1] != "2.0.":
-                    raise UnsupportedVersion(version.api_version)
-            except KeyError:
-                raise UnsupportedVersion("Key error while obtaining version")
+        api = WhatsminerApi(machine)
+        version = await api.get_version()
 
-        return api
+        if version.api_version == "whatsminer v1.4.0":
+            return api
+
+        if version.api_version[:-1] == "2.0.":
+            return WhatsminerApi20(machine)
+
+        raise UnsupportedVersion(version.api_version)

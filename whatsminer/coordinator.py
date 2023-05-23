@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
@@ -23,7 +22,7 @@ from .api import (
     WhatsminerException,
     TokenError,
     DecodeError,
-    MinerOffline
+    MinerOffline, UnsupportedVersion
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -55,7 +54,6 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         host = entry.data[CONF_HOST]
         port = entry.data[CONF_PORT]
         password = entry.data[CONF_PASSWORD]
-        self.version = Version("empty", "empty")
         self.machine = WhatsminerMachine(host, port, password)
         self.api: WhatsminerApi = WhatsminerApi(self.machine)
         self.version: Optional[Version] = None
@@ -98,11 +96,13 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
             raise UpdateFailed from error
 
     async def detect_api(self):
-        try:
-            api = WhatsminerApi(self.machine)
-            self.version = await api.get_version()
-        except KeyError:
-            api = WhatsminerApi20(self.machine)
-            self.version = await api.get_version()
+        api = WhatsminerApi(self.machine)
+        self.version = await api.get_version()
 
-        return api
+        if self.version.api_version == "whatsminer v1.4.0":
+            return api
+
+        if self.version.api_version[:-1] == "2.0.":
+            return WhatsminerApi20(self.machine)
+
+        raise UnsupportedVersion(self.version.api_version)
